@@ -1,0 +1,191 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+
+    "Description" : "create web server and dynamodb",
+
+    "Parameters" : {
+        "KeyName" : {
+            "Type" : "String",
+            "Description" : "key pari for web server"
+        },
+        "S3Bucket" : {
+            "Type" : "String",
+            "Description" : "bucket to store the web server source code"
+        },
+        "S3Object" : {
+            "Type" : "String",
+            "Description" : "the source code package name"
+        },
+        "S3Link" : {
+            "Type" : "String",
+            "Description" : "the source code object link"
+        },
+        "SourceCodeDir" : {
+            "Type" : "String",
+            "Description" : "S3Object without .tar.gz"
+        },
+        "TableName" : {
+            "Type" : "String",
+            "Description" : "dynamodby table name"
+        }
+    },
+
+    "Mappings" : {
+        "Region2Ami" : {
+            "us-west-1" : { "AMI" : "ami-3ffed17a" },
+            "us-west-2" : { "AMI" : "ami-0358ce33" }
+        }
+    },
+
+    "Resources" : {
+        "WebServerSecurityGroup" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "security group for web server",
+                "SecurityGroupIngress" : [
+                    {
+                        "IpProtocol" :  "tcp",
+                        "FromPort" : "80",
+                        "ToPort" : "80",
+                        "CidrIp" : "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol" : "tcp",
+                        "FromPort" : "433",
+                        "ToPort" : "433",
+                        "CidrIp" : "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol" : "tcp",
+                        "FromPort" : "22",
+                        "ToPort" : "22",
+                        "CidrIp" : "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+
+        "GetSourceCodeRole" : {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Statement" : [ {
+                        "Effect" : "Allow",
+                        "Principal" : {
+                            "Service" : [ "ec2.amazonaws.com" ]
+                        },
+                        "Action" : [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "Path" : "/",
+                "Policies" : [ {
+                    "PolicyName" : "GetSourceCodePolicy",
+                    "PolicyDocument" : {
+                        "Statement" : [ {
+                            "Effect" : "Allow",
+                            "Action" : "S3:GetObject",
+                            "Resource" : "*"
+                        } ]
+                    }
+                }]
+            }
+        },
+
+        "GetSourceCodeProfile" : {
+            "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+                "Path" : "/",
+                "Roles" : [ {
+                    "Ref" : "GetSourceCodeRole"
+                } ]
+            }
+        },
+
+        "WebServer" : {
+            "Type" : "AWS::EC2::Instance",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "config" : {
+                        "packages" : {
+                            "yum" : {
+                                "httpd" : [],
+                                "mysql" : [],
+                                "php" : [],
+                                "php-mysql" : [],
+                                "MySQL-python" : []
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "httpd" : {
+                                    "enabled" : "true",
+                                    "ensureRunning" : "true"
+                                }
+                            }
+                        },
+                        "sources" : {
+                            "/tmp/" : { "Ref" : "S3Link" }
+                        }
+                    }
+                },
+                "AWS::CloudFormation::Authentication": {
+                    "default" : {
+                        "type": "s3",
+                        "buckets": [ { "Ref" : "S3Bucket" } ],
+                        "roleName": { "Ref": "GetSourceCodeRole" }
+                    }
+                }
+            },
+            "Properties" : {
+                "KeyName" : { "Ref" : "KeyName" },
+                "InstanceType" : "t1.micro",
+                "SecurityGroups" : [ { "Ref" : "WebServerSecurityGroup" } ],
+                "ImageId" : { "Fn::FindInMap" : [ "Region2Ami", { "Ref" : "AWS::Region" }, "AMI" ] },
+                "IamInstanceProfile" : { "Ref" : "GetSourceCodeProfile" },
+                "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "", [
+                    "#!/bin/bash", "\n",
+                    "yum update -y aws-cfn-bootstrap\n",
+                    "# Helper function\n",
+                    "function error_exit\n",
+                    "{\n",
+                    "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+                    "  exit 1\n",
+                    "}\n",
+                    "result=`/opt/aws/bin/cfn-init -v -s ",
+                    { "Ref" : "AWS::StackName" }, " -r WebServer",
+                    " --region ", { "Ref" : "AWS::Region" },
+                    " 2>&1`\n",
+                    "ret=$?\n",
+                    "[ $ret -eq 0 ] || error_exit \"cfn-init failed, $ret, $result\"\n",
+                    "result=`/tmp/", { "Ref" : "SourceCodeDir" }, "/setup.sh",
+                    " ", { "Ref" : "TableName" },
+                    " 2>&1`\n",
+                    "[ \"$result\" == \"\" ] || error_exit \"setup.sh failed, $result\"\n",
+                    "# All is well so signal success\n",
+                    "/opt/aws/bin/cfn-signal -e 0 -r \"web server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+                    ] ] }
+                }
+            }
+        },
+
+        "WaitHandle" : {
+            "Type" : "AWS::CloudFormation::WaitConditionHandle"
+        },
+
+        "WaitCondition" : {
+            "Type" : "AWS::CloudFormation::WaitCondition",
+            "DependsOn" : "WebServer",
+            "Properties" : {
+                "Handle" : { "Ref" : "WaitHandle"},
+                "Timeout" : "1200"
+            }
+        }
+    },
+
+    "Outputs" : {
+        "WebServerId" : {
+            "Value" : { "Ref" : "WebServer" },
+            "Description" : "The WebServerId used for creating ami"
+        }
+    }
+}
