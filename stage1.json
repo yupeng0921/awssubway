@@ -108,11 +108,7 @@
                     "config" : {
                         "packages" : {
                             "yum" : {
-                                "httpd" : [],
-                                "mysql" : [],
-                                "php" : [],
-                                "php-mysql" : [],
-                                "MySQL-python" : []
+                                "httpd" : []
                             }
                         },
                         "services" : {
