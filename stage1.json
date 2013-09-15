@@ -12,10 +12,6 @@
             "Type" : "String",
             "Description" : "bucket to store the web server source code"
         },
-        "S3Object" : {
-            "Type" : "String",
-            "Description" : "the source code package name"
-        },
         "S3Link" : {
             "Type" : "String",
             "Description" : "the source code object link"
@@ -154,6 +150,7 @@
                     "ret=$?\n",
                     "[ $ret -eq 0 ] || error_exit \"cfn-init failed, $ret, $result\"\n",
                     "result=`/tmp/", { "Ref" : "SourceCodeDir" }, "/setup.sh",
+					" ", { "Ref" : "SourceCodeDir" },
                     " ", { "Ref" : "TableName" },
                     " 2>&1`\n",
                     "[ \"$result\" == \"\" ] || error_exit \"setup.sh failed, $result\"\n",
