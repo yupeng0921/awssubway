@@ -2,6 +2,8 @@
 
 export region=us-west-1
 export prefix=Subway1
+export write_throughput=1
+export read_throughput=1
 export bucket=sourcecode
 export src=web
 

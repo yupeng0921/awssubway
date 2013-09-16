@@ -20,9 +20,15 @@
             "Type" : "String",
             "Description" : "S3Object without .tar.gz"
         },
-        "TableName" : {
+        "WriteThroughput" : {
             "Type" : "String",
-            "Description" : "dynamodby table name"
+            "Default" : "1",
+            "Description" : "dynamodb write capability"
+        },
+        "ReadThroughput" : {
+            "Type" : "String",
+			"Default" : "1",
+            "Description" : "dynamodb read capability"
         }
     },
 
@@ -34,6 +40,26 @@
     },
 
     "Resources" : {
+        "DynamoDb" : {
+            "Type" : "AWS::DynamoDB::Table",
+            "Properties" : {
+                "KeySchema" : {
+                    "HashKeyElement": {
+                        "AttributeName" : "station",
+                        "AttributeType" : "S"
+                    },
+                    "RangeKeyElement" : {
+                        "AttributeName" : "timestamp",
+                        "AttributeType" : "S"
+                    }
+                },
+                "ProvisionedThroughput" : {
+                    "ReadCapacityUnits" : { "Ref" : "ReadThroughput" },
+                    "WriteCapacityUnits" : { "Ref" : "WriteThroughput" }
+                }
+            }
+        },
+
         "WebServerSecurityGroup" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "Properties" : {
@@ -151,7 +177,7 @@
                     "[ $ret -eq 0 ] || error_exit \"cfn-init failed, $ret, $result\"\n",
                     "result=`/tmp/", { "Ref" : "SourceCodeDir" }, "/setup.sh",
 					" ", { "Ref" : "SourceCodeDir" },
-                    " ", { "Ref" : "TableName" },
+                    " ", { "Ref" : "DynamoDb" },
                     " 2>&1`\n",
                     "[ \"$result\" == \"\" ] || error_exit \"setup.sh failed, $result\"\n",
                     "# All is well so signal success\n",
@@ -179,6 +205,10 @@
         "WebServerId" : {
             "Value" : { "Ref" : "WebServer" },
             "Description" : "The WebServerId used for creating ami"
+        },
+        "DynamoDbTableName" : {
+            "Value" : { "Ref" : "DynamoDb" },
+            "Description" : "The name of dynamodb table"
         }
     }
 }
