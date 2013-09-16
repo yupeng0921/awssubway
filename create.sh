@@ -9,11 +9,28 @@ function error_exit()
 	exit 1
 }
 
+function wait_stack()
+{
+	stack_name=$1
+	echo waiting stack $stack_name
+	while true; do
+		sleep 5
+		status=`aws cloudformation describe-stacks --stack-name $stack_name --region $region | awk '{if($1=="\"StackStatus\":") print substr($2,2,length($2)-3)}'`
+		echo $status
+		[ $status == "CREATE_COMPLETE" ] && return 0
+		echo $status | grep -q ROLLBACK
+		[ $? -eq 0 ] && return 1
+	done
+}
+
 resource="targz"
 
 tar zcf $src.tar.gz $src
 [ $? -eq 0 ] || error_exit "create $src.tar.gz failed" "$resource"
 
+# bucket_conf="{\"LocationConstraint\":\"$region\"}"
+# aws s3api create-bucket --bucket $bucket_name --create-bucket-configuration "$bucket_conf"
+# region has no effect here
 aws s3api create-bucket --bucket $bucket_name --region $region
 [ $? -eq 0 ] || error_exit "create bucket failed, $bucket_name" "$resource"
 
@@ -33,3 +50,14 @@ cat $keypair_out | awk '{if($1=="\"KeyMaterial\":") {gsub(/\\n/,"\n",$0);print s
 [ $? -eq 0 ] || error_exit "exact pem failed, $keypair_out, $kekypair_pem" "$resource"
 
 resource="$resource"" keypair_pem"
+
+aws cloudformation create-stack --stack-name $stage1_name --template-body file://stage1.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="S3Bucket",ParameterValue="$bucket_name" ParameterKey="S3Link",ParameterValue="$s3_link" ParameterKey="SourceCodeDir",ParameterValue="$src" ParameterKey="WriteThroughput",ParameterValue="$write_throughput" ParameterKey="ReadThroughput",ParameterValue="$read_throughput" --region $region
+[ $? -eq 0 ] || error_exit "create stack failed, $stack_name" "$resource"
+
+resource="$resource"" stage1"
+
+wait_stack $stage1_name
+if [ $? -ne 0 ]; then
+	aws cloudformation describe-stack-events --stack-name $stage1_name --region $region
+	error_exit "create stack failed, $stack_name" "$resource"
+fi

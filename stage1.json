@@ -115,7 +115,7 @@
                                 "Resource" : { "Fn::Join" : [ "", [
                                     "arn:aws:dynamodb:",
                                     { "Ref" : "AWS::Region" },
-                                    ":*table/",
+                                    ":*:table/",
                                     { "Ref" : "DynamoDb" }
                                 ] ] }
                             }
