@@ -87,7 +87,7 @@
             }
         },
 
-        "GetSourceCodeRole" : {
+        "WebServerRole" : {
             "Type" : "AWS::IAM::Role",
             "Properties" : {
                 "AssumeRolePolicyDocument" : {
@@ -101,24 +101,36 @@
                 },
                 "Path" : "/",
                 "Policies" : [ {
-                    "PolicyName" : "GetSourceCodePolicy",
+                    "PolicyName" : "WebServerPolicy",
                     "PolicyDocument" : {
-                        "Statement" : [ {
-                            "Effect" : "Allow",
-                            "Action" : "S3:GetObject",
-                            "Resource" : "*"
-                        } ]
+                        "Statement" : [
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "S3:GetObject",
+                                "Resource" : "*"
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : [ "dynamodb:PutItem", "dynamodb:query"],
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:dynamodb:",
+                                    { "Ref" : "AWS::Region" },
+                                    ":*table/",
+                                    { "Ref" : "DynamoDb" }
+                                ] ] }
+                            }
+                        ]
                     }
                 }]
             }
         },
 
-        "GetSourceCodeProfile" : {
+        "WebServerProfile" : {
             "Type" : "AWS::IAM::InstanceProfile",
             "Properties" : {
                 "Path" : "/",
                 "Roles" : [ {
-                    "Ref" : "GetSourceCodeRole"
+                    "Ref" : "WebServerRole"
                 } ]
             }
         },
@@ -150,7 +162,7 @@
                     "default" : {
                         "type": "s3",
                         "buckets": [ { "Ref" : "S3Bucket" } ],
-                        "roleName": { "Ref": "GetSourceCodeRole" }
+                        "roleName": { "Ref": "WebServerRole" }
                     }
                 }
             },
@@ -159,7 +171,7 @@
                 "InstanceType" : "t1.micro",
                 "SecurityGroups" : [ { "Ref" : "WebServerSecurityGroup" } ],
                 "ImageId" : { "Fn::FindInMap" : [ "Region2Ami", { "Ref" : "AWS::Region" }, "AMI" ] },
-                "IamInstanceProfile" : { "Ref" : "GetSourceCodeProfile" },
+                "IamInstanceProfile" : { "Ref" : "WebServerProfile" },
                 "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "", [
                     "#!/bin/bash", "\n",
                     "yum update -y aws-cfn-bootstrap\n",
