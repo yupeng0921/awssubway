@@ -5,7 +5,8 @@
 function error_exit()
 {
 	echo $1 1>&2
-	./delete.sh $2
+	#./delete.sh $2
+	echo $2 1>&2
 	exit 1
 }
 
@@ -52,13 +53,14 @@ chmod 600 $keypair_pem
 
 resource="$resource"" keypair_pem"
 
-aws cloudformation create-stack --stack-name $stage1_name --template-body file://stage1.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="S3Bucket",ParameterValue="$bucket_name" ParameterKey="S3Link",ParameterValue="$s3_link" ParameterKey="SourceCodeDir",ParameterValue="$src" ParameterKey="WriteThroughput",ParameterValue="$write_throughput" ParameterKey="ReadThroughput",ParameterValue="$read_throughput" --region $region
+aws cloudformation create-stack --stack-name $stage1_name --template-body file://stage1.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="S3Bucket",ParameterValue="$bucket_name" ParameterKey="S3Link",ParameterValue="$s3_link" ParameterKey="SourceCodeDir",ParameterValue="$src" ParameterKey="WriteThroughput",ParameterValue="$write_throughput" ParameterKey="GoogleMapApiId",ParameterValue="$google_map_api_id" ParameterKey="ReadThroughput",ParameterValue="$read_throughput" --region $region
+
 [ $? -eq 0 ] || error_exit "create stack failed, $stack_name" "$resource"
 
 resource="$resource"" stage1"
 
 wait_stack $stage1_name
 if [ $? -ne 0 ]; then
-	aws cloudformation describe-stack-events --stack-name $stage1_name --region $region
+	# aws cloudformation describe-stack-events --stack-name $stage1_name --region $region
 	error_exit "create stack failed, $stack_name" "$resource"
 fi

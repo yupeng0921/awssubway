@@ -2,6 +2,7 @@
 
 export region=us-west-1
 export prefix=Subway
+export google_map_api_id="AIzaSyDiLV-ziuG1H70wn6BZ-AZ4rilk0KznzBI"
 export write_throughput=1
 export read_throughput=1
 export bucket=sourcecode

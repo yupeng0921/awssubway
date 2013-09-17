@@ -14,8 +14,8 @@ try:
     description = form['insert_description'].value
     timestamp = time.ctime()
 
-    conn = boto.dynamodb2.connect_to_region('us-west-1')
-    table = Table('SubwayStage1-DynamoDb-1HDONOMYE3WDE', connection=conn)
+    conn = boto.dynamodb2.connect_to_region('replace_to_region')
+    table = Table('replace_to_table_name', connection=conn)
     table.put_item(data={'station':station, 'timestamp':timestamp, 'description':description})
 
     print station

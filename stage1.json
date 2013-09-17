@@ -6,7 +6,7 @@
     "Parameters" : {
         "KeyName" : {
             "Type" : "String",
-            "Description" : "key pari for web server"
+            "Description" : "key pair for web server"
         },
         "S3Bucket" : {
             "Type" : "String",
@@ -19,6 +19,10 @@
         "SourceCodeDir" : {
             "Type" : "String",
             "Description" : "S3Object without .tar.gz"
+        },
+        "GoogleMapApiId" : {
+            "Type" : "String",
+            "Description" : "The google map api id"
         },
         "WriteThroughput" : {
             "Type" : "String",
@@ -190,6 +194,8 @@
                     "result=`/tmp/", { "Ref" : "SourceCodeDir" }, "/setup.sh",
 					" ", { "Ref" : "SourceCodeDir" },
                     " ", { "Ref" : "DynamoDb" },
+                    " ", { "Ref" : "AWS::Region" },
+                    " ", { "Ref" : "GoogleMapApiId" },
                     " 2>&1`\n",
                     "[ \"$result\" == \"\" ] || error_exit \"setup.sh failed, $result\"\n",
                     "# All is well so signal success\n",
