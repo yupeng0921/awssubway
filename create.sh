@@ -48,6 +48,7 @@ resource="$resource"" keypair_out"
 
 cat $keypair_out | awk '{if($1=="\"KeyMaterial\":") {gsub(/\\n/,"\n",$0);print substr($0,21,length($0)-23)}}' > $keypair_pem
 [ $? -eq 0 ] || error_exit "exact pem failed, $keypair_out, $kekypair_pem" "$resource"
+chmod 600 $keypair_pem
 
 resource="$resource"" keypair_pem"
 

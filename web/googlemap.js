@@ -11,6 +11,13 @@ var stations = [
 	}
 	];
 
+function addListener(marker)
+{
+	google.maps.event.addListener(marker, 'click', function() {
+				window.open('detail.html?id='+marker.title, '_self');
+			});
+}
+
 function initialize()
 {
 	var mapOptions = {
@@ -28,8 +35,7 @@ function initialize()
 			});
 		// To add the marker to the map, call setMap();
 		marker.setMap(map);
-		google.maps.event.addListener(marker, 'click', function() {
-				window.open('detail.html?id='+marker.title, '_self');
-			});
+		// must use an independ function, or the marker is always the last one
+		addListener(marker);
 	}
 }
