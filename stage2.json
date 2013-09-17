@@ -1,0 +1,149 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+
+    "Description" : "create vpc, elb and auto scaling",
+
+    "Parameters" : {
+        "KeyName" : {
+            "Type" : "String",
+            "Description" : "key pair for web server"
+        },
+        "ImageId" : {
+            "Type" : "String",
+            "Description" : "image for auto scaling configuration"
+        },
+        "InstanceType" : {
+            "Type" : "String",
+            "Default" : "t1.macro",
+            "Description" : "instance type for auto scaling configuration"
+        },
+        "DynamoDbName" : {
+            "Type" : "String",
+            "Description" : "name of the dynamodb, need it to create arn for role"
+        }
+    },
+
+    "Mappings" : {
+        "Region2AZ" : {
+            "us-west-1" : { "AZ1" : "us-west-1b", "AZ2" : "us-west-1c" },
+            "us-west-2" : { "AZ1" : "us-west-2a", "AZ2" : "us-west-2b" }
+        }
+    },
+
+    "Resources" : {
+        "Vpc" : {
+            "Type" : "AWS::EC2::VPC",
+            "Properties" : {
+                "CidrBlock" : "10.0.0.0/16",
+                "InstanceTenancy" : "default"
+            }
+        },
+
+        "PublicSubnet1" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "CidrBlock" : "10.0.0.0/24",
+                "AvailabilityZone" : { "Fn::FindInMap" : [ "Region2AZ", { "Ref" : "AWS::Region" }, "AZ1" ] },
+                "VpcId" : {
+                    "Ref" : "Vpc"
+                }
+            }
+        },
+
+        "PublicSubnet2" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "CidrBlock" : "10.0.1.0/24",
+                "AvailabilityZone" : { "Fn::FindInMap" : [ "Region2AZ", { "Ref" : "AWS::Region" }, "AZ2" ] },
+                "VpcId" : {
+                    "Ref" : "Vpc"
+                }
+            }
+        },
+
+        "PrivateSubnet1" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "CidrBlock" : "10.0.2.0/24",
+                "AvailabilityZone" : { "Fn::FindInMap" : [ "Region2AZ", { "Ref" : "AWS::Region" }, "AZ1" ] },
+                "VpcId" : {
+                    "Ref" : "Vpc"
+                }
+            }
+        },
+
+        "PrivateSubnet2" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "CidrBlock" : "10.0.3.0/24",
+                "AvailabilityZone" : { "Fn::FindInMap" : [ "Region2AZ", { "Ref" : "AWS::Region" }, "AZ2" ] },
+                "VpcId" : {
+                    "Ref" : "Vpc"
+                }
+            }
+        },
+
+        "DhcpOption" : {
+            "Type" : "AWS::EC2::DHCPOptions",
+            "Properties" : {
+                "DomainName" : { "Fn::Join" : [ "", [ { "Ref" : "AWS::Region" } , ".compute.internal" ] ] },
+                "DomainNameServers" : [ "AmazonProvidedDNS" ]
+            }
+        },
+
+        "DhcpAssociation" : {
+            "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+            "Properties" : {
+                "VpcId" : { "Ref" : "Vpc" },
+                "DhcpOptionsId" : { "Ref" : "DhcpOption" }
+            }
+        },
+
+        "Igw" : {
+            "Type" : "AWS::EC2::InternetGateway"
+        },
+
+        "GatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": { "Ref": "Vpc" },
+                "InternetGatewayId": { "Ref": "Igw" }
+            }
+        },
+
+        "PublicRouteTable" : {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : {
+                "VpcId" : { "Ref" : "Vpc" }
+            }
+        },
+
+        "PublicRouteAssociation1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnet1" }
+            }
+        },
+
+        "PublicRouteAssociation2": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnet2" }
+            }
+        },
+
+        "PublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                },
+                "GatewayId": { "Ref": "Igw" }
+            },
+            "DependsOn": "GatewayAttachment"
+        }
+    }
+}
