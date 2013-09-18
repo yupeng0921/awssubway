@@ -14,12 +14,22 @@
         },
         "InstanceType" : {
             "Type" : "String",
-            "Default" : "t1.macro",
+            "Default" : "t1.micro",
             "Description" : "instance type for auto scaling configuration"
         },
-        "DynamoDbName" : {
+        "DynamoDb" : {
             "Type" : "String",
             "Description" : "name of the dynamodb, need it to create arn for role"
+        },
+        "MinSize" : {
+            "Type" : "String",
+            "Default" : "2",
+            "Description" : "min instance number of auto scaling group"
+        },
+		"MaxSize" : {
+            "Type" : "String",
+            "Default" : "8",
+            "Description" : "max instance number of auto scaling group"
         }
     },
 
@@ -144,6 +154,219 @@
                 "GatewayId": { "Ref": "Igw" }
             },
             "DependsOn": "GatewayAttachment"
+        },
+
+        "ElbSG" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "sg for elb",
+                "VpcId" : { "Ref" : "Vpc" },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "-1",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+
+        "InstanceSG" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "sg for backend instance",
+                "VpcId" : { "Ref" : "Vpc" },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "10.0.0.0/16"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "-1",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+
+        "LoadBalancer" : {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties" : {
+                "Subnets" : [
+                    { "Ref" : "PublicSubnet1" },
+					{ "Ref" : "PublicSubnet2" }
+                ],
+                "HealthCheck": {
+                    "HealthyThreshold": "2",
+                    "Interval": "30",
+                    "Target": "HTTP:80/test.html",
+                    "Timeout": "5",
+                    "UnhealthyThreshold": "2"
+                },
+                "SecurityGroups" : [ { "Ref" : "ElbSG" } ],
+                "Listeners": [
+                    {
+                        "InstancePort": "80",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "HTTP",
+                        "InstanceProtocol": "HTTP"
+                    }
+                ]
+            }
+        },
+
+        "WebServerRole" : {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Statement" : [ {
+                        "Effect" : "Allow",
+                        "Principal" : {
+                            "Service" : [ "ec2.amazonaws.com" ]
+                        },
+                        "Action" : [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "Path" : "/",
+                "Policies" : [ {
+                    "PolicyName" : "WebServerPolicy",
+                    "PolicyDocument" : {
+                        "Statement" : [
+                            {
+                                "Effect" : "Allow",
+                                "Action" : [ "dynamodb:PutItem", "dynamodb:query"],
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:dynamodb:",
+                                    { "Ref" : "AWS::Region" },
+                                    ":*:table/",
+                                    { "Ref" : "DynamoDb" }
+                                ] ] }
+                            }
+                        ]
+                    }
+                }]
+            }
+        },
+
+        "WebServerProfile" : {
+            "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+                "Path" : "/",
+                "Roles" : [ {
+                    "Ref" : "WebServerRole"
+                } ]
+            }
+        },
+
+        "LaunchConfiguration" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "KeyName" : { "Ref" : "KeyName" },
+                "ImageId" : { "Ref" : "ImageId" },
+                "SecurityGroups" : [ { "Ref" : "InstanceSG" } ],
+                "InstanceType" : { "Ref" : "InstanceType"},
+                "IamInstanceProfile" : { "Ref" : "WebServerProfile" }
+            }
+        },
+
+        "AutoScalingGroup" : {
+            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+            "Properties" : {
+                "AvailabilityZones" : [
+                    { "Fn::FindInMap" : [ "Region2AZ", { "Ref" : "AWS::Region" }, "AZ1" ] },
+                    { "Fn::FindInMap" : [ "Region2AZ", { "Ref" : "AWS::Region" }, "AZ2" ] }
+                ],
+                "LaunchConfigurationName" : { "Ref" : "LaunchConfiguration"},
+                "MinSize" : { "Ref" : "MinSize" },
+                "MaxSize" : { "Ref" : "MaxSize" },
+                "LoadBalancerNames" : [ { "Ref" : "LoadBalancer" } ],
+                "VPCZoneIdentifier" : [
+                    { "Ref" : "PrivateSubnet1" },
+					{ "Ref" : "PrivateSubnet2" }
+                ]
+            }
+        },
+
+        "ScalingUpPolicy" : {
+            "Type" : "AWS::AutoScaling::ScalingPolicy",
+            "Properties" : {
+                "AdjustmentType" : "ChangeInCapacity",
+                "AutoScalingGroupName" : {"Ref" : "AutoScalingGroup" },
+                "Cooldown" : "300",
+                "ScalingAdjustment" : "2"
+            }
+        },
+
+        "ScalingDownPolicy" : {
+            "Type" : "AWS::AutoScaling::ScalingPolicy",
+            "Properties" : {
+                "AdjustmentType" : "ChangeInCapacity",
+                "AutoScalingGroupName" : { "Ref" : "AutoScalingGroup" },
+                "Cooldown" : "300",
+                "ScalingAdjustment" : "-2"
+            }
+        },
+
+        "CPUAlarmHigh" : {
+            "Type" : "AWS::CloudWatch::Alarm",
+            "Properties" : {
+                "AlarmDescription" : "Scaling up if CPU > 80% for 10 minutes",
+                "MetricName" : "CPUUtilization",
+                "Namespace" : "AWS/EC2",
+                "Statistic" : "Average",
+                "Period" : "300",
+                "EvaluationPeriods" : "2",
+                "Threshold" : "80",
+                "AlarmActions" : [ { "Ref" : "ScalingUpPolicy" } ],
+                "Dimensions" : [
+                    {
+                        "Name" : "AutoScalingGroupName",
+                        "Value" : { "Ref" : "AutoScalingGroup" }
+                    }
+                ],
+                "ComparisonOperator" : "GreaterThanThreshold"
+            }
+        },
+
+        "CPUAlarmLow" : {
+            "Type" : "AWS::CloudWatch::Alarm",
+            "Properties" : {
+                "AlarmDescription" : "Scaling down if CPU < 20% for 10 minutes",
+                "MetricName" : "CPUUtilization",
+                "Namespace" : "AWS/EC2",
+                "Statistic" : "Average",
+                "Period" : "300",
+                "EvaluationPeriods" : "2",
+                "Threshold" : "20",
+                "AlarmActions" : [ { "Ref" : "ScalingDownPolicy" } ],
+                "Dimensions" : [
+                    {
+                        "Name" : "AutoScalingGroupName",
+                        "Value" : { "Ref" : "AutoScalingGroup" }
+                    }
+                ],
+                "ComparisonOperator" : "LessThanThreshold"
+            }
+        }
+    },
+
+    "Outputs" : {
+        "UrL" : {
+            "Description" : "The URL of the website",
+            "Value" : {
+                "Fn::Join" : [ "", [ "http://", { "Fn::GetAtt" : [ "LoadBalancer", "DNSName" ] } ] ]
+            }
         }
     }
 }

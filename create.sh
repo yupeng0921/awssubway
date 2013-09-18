@@ -17,7 +17,7 @@ function wait_stack()
 	while true; do
 		sleep 5
 		status=`aws cloudformation describe-stacks --stack-name $stack_name --region $region | awk '{if($1=="\"StackStatus\":") print substr($2,2,length($2)-3)}'`
-		echo $status
+		echo "$stack_name $status"
 		[ $status == "CREATE_COMPLETE" ] && return 0
 		echo $status | grep -q ROLLBACK
 		[ $? -eq 0 ] && return 1
@@ -55,7 +55,7 @@ resource="$resource"" keypair_pem"
 
 aws cloudformation create-stack --stack-name $stage1_name --template-body file://stage1.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="S3Bucket",ParameterValue="$bucket_name" ParameterKey="S3Link",ParameterValue="$s3_link" ParameterKey="SourceCodeDir",ParameterValue="$src" ParameterKey="WriteThroughput",ParameterValue="$write_throughput" ParameterKey="GoogleMapApiId",ParameterValue="$google_map_api_id" ParameterKey="ReadThroughput",ParameterValue="$read_throughput" --region $region
 
-[ $? -eq 0 ] || error_exit "create stack failed, $stack_name" "$resource"
+[ $? -eq 0 ] || error_exit "create stack failed, $stage1_name" "$resource"
 
 resource="$resource"" stage1"
 
@@ -64,3 +64,56 @@ if [ $? -ne 0 ]; then
 	# aws cloudformation describe-stack-events --stack-name $stage1_name --region $region
 	error_exit "create stack failed, $stack_name" "$resource"
 fi
+
+
+result=`aws cloudformation describe-stacks --stack-name $stage1_name --region $region | egrep OutputValue`
+instance_id=""
+dynamodb_name=""
+for item in $result; do
+	[ $item == "\"OutputValue\":" ] && continue
+	item=`echo $item | awk '{print substr($0,2,length($0)-2)}'`
+	echo $item | egrep -q '^i-[0-9,a-f]{8}$'
+	[ $? -eq 0 ] && instance_id=$item
+	echo $item | grep -q -i dynamodb
+	[ $? -eq 0 ] && dynamodb_name=$item
+done
+
+[ "$instance_id" == "" ] && error_exit "no instance_id $result" "$resource"
+[ "$dynamodb_name" == "" ] && error_exit "no dynamodb_name $result" "$resource"
+
+echo $instance_id
+echo $dynamodb_name
+
+aws ec2 create-image --instance-id $instance_id --name $image_name --description "$image_description" --region $region
+[ $? -eq 0 ] || error_exit "create image failed, $instance_id, $snapshot_name" "$resource"
+
+resource="$resource"" image"
+
+image_id=`aws ec2 describe-images --owners self --filters Name=name,Values=$image_name --region $region | awk '{if($1=="\"ImageId\":") print substr($2,2,length($2)-3)}'`
+echo $image_id | egrep -q '^ami-[0-9,a-f]{8}$'
+[ $? -eq 0 ] || error_exit "invalid image_id, $image_id" "$resource"
+
+echo $image_id
+
+while true; do
+	sleep 5
+	state=`aws ec2 describe-images --owners self --filters Name=name,Values=$image_name --region $region | awk '{if($1=="\"State\":") print substr($2,2,length($2)-3)}'`
+	echo "$state"
+	if [ "$state" == "available" ]; then
+		break
+	fi
+done
+
+aws cloudformation create-stack --stack-name $stage2_name --template-body file://stage2.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="ImageId",ParameterValue="$image_id" ParameterKey="InstanceType",ParameterValue="$instance_type" ParameterKey="DynamoDb",ParameterValue="$dynamodb_name" ParameterKey="MinSize",ParameterValue="$min_size" ParameterKey="MaxSize",ParameterValue="$max_size" --region $region
+
+[ $? -eq 0 ] || error_exit "create stack failed, $stage2_name" "$resource"
+
+resource="$resource"" stage2"
+
+wait_stack $stage2_name
+if [ $? -ne 0 ]; then
+	# aws cloudformation describe-stack-events --stack-name $stage2_name --region $region
+	error_exit "create stack failed, $stack_name" "$resource"
+fi
+
+aws cloudformation describe-stacks --stack-name $stage2_name --region $region | egrep OutputValue

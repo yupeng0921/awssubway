@@ -24,22 +24,33 @@ function delete_stack()
 		while true; do
 			sleep 5
 			result=`aws cloudformation describe-stacks --stack-name $stack_name --region $region 2>&1`
-			echo $result
 			echo $result | grep -q 'does not exist$'
 			[ $? -eq 0 ] && break 2
 			status=`echo $result | awk 'BEGIN {RS=","} {if($1=="\"StackStatus\":") print substr($2,2,length($2)-2)}'`
+			echo "$stack_name $status"
 			[ $status == "DELETE_FAILED" ] && break
 		done
 	done
 }
 			
 if [ $# -eq 0 ]; then
-	param="targz bucket upload keypair_out keypair_pem stage1"
+	param="targz bucket upload keypair_out keypair_pem stage1 image stage2"
 else
 	param=$*
 fi
 
 echo "delete param: $param"
+
+echo $param | grep -q -w stage1
+if [ $? -eq 0 ]; then
+	delete_stack $stage2_name
+fi
+
+echo $param | grep -q -w image
+if [ $? -eq 0 ]; then
+	image_id=`aws ec2 describe-images --owners self --filters Name=name,Values=$image_name --region $region | awk '{if($1=="\"ImageId\":") print substr($2,2,length($2)-3)}'`
+	run_until_success aws ec2 deregister-image --image-id $image_id --region $region
+fi
 
 echo $param | grep -q -w stage1
 if [ $? -eq 0 ]; then
