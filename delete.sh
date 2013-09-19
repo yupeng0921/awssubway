@@ -41,7 +41,7 @@ fi
 
 echo "delete param: $param"
 
-echo $param | grep -q -w stage1
+echo $param | grep -q -w stage2
 if [ $? -eq 0 ]; then
 	delete_stack $stage2_name
 fi
