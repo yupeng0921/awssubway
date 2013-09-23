@@ -1,13 +1,28 @@
 var stations = [
 	{
-	x : 39.904897,
-	y : 116.40765,
-	title : "st1"
+	title : "Gucheng",
+	x : 39.907299,
+	y : 116.190765
 	},
 	{
-	x : 39.814797,
-	y : 116.40765,
-	title : "st2"
+	title : "Babaoshan",
+	x : 39.907440,
+	y : 116.235741
+	},
+	{
+	title : "Yuquanlu",
+	x : 39.907413,
+	y : 116.252991
+	},
+	{
+	title : "Wukesong",
+	x : 39.907413,
+	y : 116.273941
+	},
+	{
+	title : "Wanshousi",
+	x : 39.907497,
+	y : 116.295067
 	}
 	];
 
