@@ -29,20 +29,16 @@
     <div class="container">
 
         <form class="form-signin" action="../cgi-bin/insert.py" method="post">
-            <h2 class="form-signin-heading">Current Station</h2>
-            <input id="insert_station" type="text" name="insert_station"/>
-            <h2 class="form-signin-heading">Post an update!</h2>
-            <input type="text" name="insert_description" placeholder="This is awesome!" autofocus>
+            <p><div class="container"><img src="assets/img/subway.jpg" alt="SubwayApp" class="img-circle img-responsive"></div></p>
+            <input class="form-control" id="insert_station" type="text" name="insert_station"/>
+            <input class="form-control" type="text" name="insert_description" placeholder="This is awesome!" autofocus>
             <button class="btn btn-lg btn-primary btn-block" type="submit">Post Update</button>
         </form>
 
         <form class="form-signin" action="../cgi-bin/show.py" method="post">
-            <h2 class="form-signin-heading">List Updates</h2>
-            <input id="show_station" type="text" name="show_station"/>
+            <input class="form-control" id="show_station" type="text" name="show_station"/>
             <button class="btn btn-lg btn-primary btn-block" type="submit">List Updates</button>
         </form>
-
-
     </div> <!-- /container -->
 
 
