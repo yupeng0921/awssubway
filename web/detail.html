@@ -1,21 +1,54 @@
-<html>
-  <body>
-    <h2>This is Joe's Test</h2>
 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="assets/ico/favicon.png">
+
+    <title>Signin Template for Bootstrap</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="assets/css/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="details.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="assets/js/html5shiv.js"></script>
+      <script src="assets/js/respond.min.js"></script>
+    <![endif]-->
     <script src="detail.js"></script>
+  </head>
 
-    <form action="../cgi-bin/insert.py" method="post">
-      insert:
-      station<input id="insert_station" type="text" name="insert_station"/>
-      description<input type="text" name="insert_description"/>
-      <input type="submit" />
-    </form>
+  <body>
 
-    <form action="../cgi-bin/show.py" method="post">
-      show:
-      station<input id="show_station" type="text" name="show_station"/>
-      <input type="submit" />
-    </form>
+    <div class="container">
 
+        <form class="form-signin" action="../cgi-bin/insert.py" method="post">
+            <h2 class="form-signin-heading">Current Station</h2>
+            <input id="insert_station" type="text" name="insert_station"/>
+            <h2 class="form-signin-heading">Post an update!</h2>
+            <input type="text" name="insert_description" placeholder="This is awesome!" autofocus>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Post Update</button>
+        </form>
+
+        <form class="form-signin" action="../cgi-bin/show.py" method="post">
+            <h2 class="form-signin-heading">List Updates</h2>
+            <input id="show_station" type="text" name="show_station"/>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">List Updates</button>
+        </form>
+
+
+    </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
   </body>
 </html>
+
