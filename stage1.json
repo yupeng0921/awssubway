@@ -1,7 +1,7 @@
 {
     "AWSTemplateFormatVersion" : "2010-09-09",
 
-    "Description" : "create web server and dynamodb",
+    "Description" : "create web server",
 
     "Parameters" : {
         "KeyName" : {
@@ -24,46 +24,20 @@
             "Type" : "String",
             "Description" : "The google map api id"
         },
-        "WriteThroughput" : {
+        "DynamoDb" : {
             "Type" : "String",
-            "Default" : "1",
-            "Description" : "dynamodb write capability"
-        },
-        "ReadThroughput" : {
-            "Type" : "String",
-			"Default" : "1",
-            "Description" : "dynamodb read capability"
+            "Description" : "dynamodb id"
         }
     },
 
     "Mappings" : {
         "Region2Ami" : {
-            "us-west-1" : { "AMI" : "ami-3ffed17a" },
-            "us-west-2" : { "AMI" : "ami-0358ce33" }
+            "us-west-1" : { "AMI" : "ami-687b4f2d" },
+            "us-west-2" : { "AMI" : "ami-d03ea1e0" }
         }
     },
 
     "Resources" : {
-        "DynamoDb" : {
-            "Type" : "AWS::DynamoDB::Table",
-            "Properties" : {
-                "KeySchema" : {
-                    "HashKeyElement": {
-                        "AttributeName" : "station",
-                        "AttributeType" : "S"
-                    },
-                    "RangeKeyElement" : {
-                        "AttributeName" : "timestamp",
-                        "AttributeType" : "S"
-                    }
-                },
-                "ProvisionedThroughput" : {
-                    "ReadCapacityUnits" : { "Ref" : "ReadThroughput" },
-                    "WriteCapacityUnits" : { "Ref" : "WriteThroughput" }
-                }
-            }
-        },
-
         "WebServerSecurityGroup" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "Properties" : {
@@ -146,12 +120,19 @@
                     "config" : {
                         "packages" : {
                             "yum" : {
-                                "httpd" : []
+                                "gcc" : [],
+                                "nginx" : [],
+                                "python-pip" : [],
+                                "python-devel" : []
+                            },
+                            "python" : {
+                                "uwsgi" : [],
+                                "flask" : []
                             }
                         },
                         "services" : {
                             "sysvinit" : {
-                                "httpd" : {
+                                "nginx" : {
                                     "enabled" : "true",
                                     "ensureRunning" : "true"
                                 }
@@ -223,10 +204,6 @@
         "WebServerId" : {
             "Value" : { "Ref" : "WebServer" },
             "Description" : "The WebServerId used for creating ami"
-        },
-        "DynamoDbTableName" : {
-            "Value" : { "Ref" : "DynamoDb" },
-            "Description" : "The name of dynamodb table"
         }
     }
 }

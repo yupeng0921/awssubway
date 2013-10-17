@@ -24,6 +24,8 @@ logfile=/tmp/1.log
 
 dump_param >> $logfile
 
+exit 0
+
 sed -i "s/replace_to_google_map_api_id/$google_map_api_id/g" /tmp/$dir_name/index.html
 [ $? -eq 0 ] || error_exit "replace $google_map_api_id in index.html failed"
 sed -i "s/replace_to_region/$region/g" /tmp/$dir_name/insert.py

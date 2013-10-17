@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<link rel="shortcut icon" href="/static/logo.png">
+
+	<title> station: {{station}}</title>
+
+	<!-- Bootstrap core CSS -->
+	<link href="/static/dist/css/bootstrap.css" rel="stylesheet">
+
+  </head>
+
+  <body>
+
+	<form role="form" action="/{{station}}/{{item.title}}?action=update" method="post" enctype="multipart/form-data">
+	  <div class="form-group">
+		<label for="inputTitle">Title</label>
+		<input type="text" class="form-control" readonly id="title" name="title" value={{item.title}} placeholder="Enter Title">
+	  </div>
+	  <div class="form-group">
+		<textarea class="form-control" rows="3" id="description" name="description">{{item.description}}</textarea>
+	  </div>
+	  <div class="row">
+		<div class="col-md-4">
+		  <div class="form-group">
+			<label for="imageInput">upload image</label>
+			<input type="file" id="imageInput0" name="imageInput0">
+		  </div>
+		</div>
+		<div class="col-md-4">
+		  <div class="form-group">
+			<label for="imageInput">upload image</label>
+			<input type="file" id="imageInput1" name="imageInput1">
+		  </div>
+		</div>
+		<div class="col-md-4">
+		  <div class="form-group">
+			<label for="imageInput">upload image</label>
+			<input type="file" id="imageInput2" name="imageInput2">
+		  </div>
+		</div>
+	  </div>
+	  <p class="help-block">only support jpg or png format image, and the size should be less than 2M</p>
+	  <button type="submit" class="btn btn-default" id="submit">Submit</button>
+	</form>
+
+	<p></p>
+
+	{% for file in item.files %}
+	<form role="form" action="/{{station}}/{{item.title}}?action=deletefile&f={{file}}"  method="post" enctype="multipart/form-data">
+	  <img src={{file}} class="img-responsive" name="img" alt={{file}}>
+	  <button type="submit" class="btn btn-default" name="delete-img">delete</button>
+	  <p></p>
+	</form>
+	{% endfor %}
+
+	<form role="form" action="/{{station}}/{{item.title}}?action=deleteitem"  method="post" enctype="multipart/form-data">
+	  <button type="submit" class="btn btn-default" id="delete-item">delete item</button>
+	  <p></p>
+	</form>
+
+	<!-- Bootstrap core JavaScript
+		 ================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="/static/js/jquery.js"></script>
+	<script src="/static/dist/js/bootstrap.min.js"></script>
+  </body>
+</html>

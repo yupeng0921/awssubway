@@ -8,9 +8,20 @@
 	  #map_canvas { height: 100% }
 	</style>
 	<script type="text/javascript"
-			src="http://maps.googleapis.com/maps/api/js?key=replace_to_google_map_api_id&sensor=false">
+			src="http://maps.googleapis.com/maps/api/js?key=AIzaSyDiLV-ziuG1H70wn6BZ-AZ4rilk0KznzBI&sensor=false">
 	</script>
-	<script src="googlemap.js">
+	<script  type="text/javascript">
+	  var stations = [
+	  {% for station in stations %}
+	  {
+	  name : "{{station.name}}",
+	  x : {{station.x}},
+	  y : {{station.y}}
+	  },
+	  {% endfor %}
+	  ];
+	</script>
+	<script src="/static/js/googlemap.js">
 	</script>
   </head>
   <body onload="initialize()">

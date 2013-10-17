@@ -34,7 +34,7 @@ function delete_stack()
 }
 			
 if [ $# -eq 0 ]; then
-	param="targz bucket upload keypair_out keypair_pem stage1 image stage2"
+	param="targz bucket upload keypair_out keypair_pem dynamodb stage1 image stage2"
 else
 	param=$*
 fi
@@ -55,6 +55,20 @@ fi
 echo $param | grep -q -w stage1
 if [ $? -eq 0 ]; then
 	delete_stack $stage1_name
+fi
+
+echo $param | grep -q -w dynamodb
+if [ $? -eq 0 ]; then
+	while true; do
+		status=`aws dynamodb describe-table --table-name $dynamodb_name --region us-west-1 | awk '{if($1=="\"TableStatus\":") print substr($2,2,length($2)-3)}'`
+		if [ "$status" == "" ]; then
+			break
+		elif [ "$status" == "ACTIVE" ]; then
+			aws dynamodb delete-table --table-name $dynamodb_name --region $region
+			break
+		fi
+		sleep 5
+	done
 fi
 
 echo $param | grep -q -w keypair_pem

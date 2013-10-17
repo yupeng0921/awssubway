@@ -1,35 +1,7 @@
-var stations = [
-	{
-	title : "Gucheng",
-	x : 39.907299,
-	y : 116.190765
-	},
-	{
-	title : "Babaoshan",
-	x : 39.907440,
-	y : 116.235741
-	},
-	{
-	title : "Yuquanlu",
-	x : 39.907413,
-	y : 116.252991
-	},
-	{
-	title : "Wukesong",
-	x : 39.907413,
-	y : 116.273941
-	},
-	{
-	title : "Wanshousi",
-	x : 39.907497,
-	y : 116.295067
-	}
-	];
-
 function addListener(marker)
 {
 	google.maps.event.addListener(marker, 'click', function() {
-				window.open('detail.html?id='+marker.title, '_self');
+				window.open("/" + marker.name, '_self');
 			});
 }
 
@@ -46,7 +18,7 @@ function initialize()
 		var station = stations[i];
 		var marker = new google.maps.Marker({
 			position: new google.maps.LatLng(station.x,station.y),
-			title:station.title
+			name:station.name
 			});
 		// To add the marker to the map, call setMap();
 		marker.setMap(map);
