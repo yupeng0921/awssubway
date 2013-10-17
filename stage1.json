@@ -38,6 +38,32 @@
     },
 
     "Resources" : {
+        "ImageBucket" : {
+            "Type" : "AWS::S3::Bucket"
+        },
+
+        "ImageCloudFront" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [ {
+                        "DomainName" : { "Fn::Join" : [ "", [ { "Ref" : "ImageBucket" }, ".s3.amazonaws.com" ] ] },
+                        "Id" : "ImageS3Origin",
+                        "S3OriginConfig" : {}
+                    } ],
+                    "Enabled" : "true",
+                    "Comment" : "for subway image",
+                    "DefaultCacheBehavior" : {
+                        "TargetOriginId" : "ImageS3Origin",
+                        "ForwardedValues" : {
+                            "QueryString" : "false"
+                        },
+                        "ViewerProtocolPolicy" : "allow-all"
+                    }
+                }
+            }
+        },
+
         "WebServerSecurityGroup" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "Properties" : {
@@ -204,6 +230,10 @@
         "WebServerId" : {
             "Value" : { "Ref" : "WebServer" },
             "Description" : "The WebServerId used for creating ami"
+        },
+        "DomainName" : {
+            "Value" : { "Fn::GetAtt" : [ "ImageBucket", "DomainName" ] },
+            "Description" : "test domain name"
         }
     }
 }
