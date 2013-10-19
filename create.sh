@@ -58,7 +58,7 @@ aws dynamodb create-table --table-name $dynamodb_name --attribute-definitions At
 
 resource="$resource"" dynamodb"
 
-aws cloudformation create-stack --stack-name $stage1_name --template-body file://stage1.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="S3Bucket",ParameterValue="$bucket_name" ParameterKey="S3Link",ParameterValue="$s3_link" ParameterKey="SourceCodeDir",ParameterValue="$src" ParameterKey="GoogleMapApiId",ParameterValue="$google_map_api_id" ParameterKey="DynamoDb",ParameterValue="$dynamodb_name" --region $region
+aws cloudformation create-stack --stack-name $stage1_name --template-body file://stage1.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="SourceCodeBucket",ParameterValue="$bucket_name" ParameterKey="SourceCodeLink",ParameterValue="$source_code_link" ParameterKey="SourceCodeDir",ParameterValue="$src" ParameterKey="GoogleMapApiId",ParameterValue="$google_map_api_id" ParameterKey="DynamoDb",ParameterValue="$dynamodb_name" ParameterKey="LogDirectory",ParameterValue="$log_directory" --region $region
 
 [ $? -eq 0 ] || error_exit "create stack failed, $stage1_name" "$resource"
 

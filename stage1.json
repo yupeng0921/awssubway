@@ -8,11 +8,11 @@
             "Type" : "String",
             "Description" : "key pair for web server"
         },
-        "S3Bucket" : {
+        "SourceCodeBucket" : {
             "Type" : "String",
             "Description" : "bucket to store the web server source code"
         },
-        "S3Link" : {
+        "SourceCodeLink" : {
             "Type" : "String",
             "Description" : "the source code object link"
         },
@@ -27,6 +27,10 @@
         "DynamoDb" : {
             "Type" : "String",
             "Description" : "dynamodb id"
+        },
+        "LogDirectory" : {
+            "Type" : "String",
+            "Description" : "directory to store web app log and uwsgi log"
         }
     },
 
@@ -110,17 +114,49 @@
                         "Statement" : [
                             {
                                 "Effect" : "Allow",
-                                "Action" : "S3:GetObject",
-                                "Resource" : "*"
+                                "Action" : "S3:Get*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:s3:::",
+                                    { "Ref" : "SourceCodeBucket" },
+                                    "/*"
+                                ] ] }
                             },
                             {
                                 "Effect" : "Allow",
-                                "Action" : [ "dynamodb:PutItem", "dynamodb:query"],
+                                "Action" : "S3:*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:s3:::",
+                                    { "Ref" : "ImageBucket" },
+                                    "/*"
+                                ] ] }
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "S3:*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:s3:::",
+                                    { "Ref" : "ImageBucket" }
+                                ] ] }
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "dynamodb:*",
                                 "Resource" : { "Fn::Join" : [ "", [
                                     "arn:aws:dynamodb:",
                                     { "Ref" : "AWS::Region" },
                                     ":*:table/",
                                     { "Ref" : "DynamoDb" }
+                                ] ] }
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "dynamodb:*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:dynamodb:",
+                                    { "Ref" : "AWS::Region" },
+                                    ":*:table/",
+                                    { "Ref" : "DynamoDb" },
+                                    "/*"
                                 ] ] }
                             }
                         ]
@@ -165,14 +201,14 @@
                             }
                         },
                         "sources" : {
-                            "/tmp/" : { "Ref" : "S3Link" }
+                            "/opt/" : { "Ref" : "SourceCodeLink" }
                         }
                     }
                 },
                 "AWS::CloudFormation::Authentication": {
                     "default" : {
                         "type": "s3",
-                        "buckets": [ { "Ref" : "S3Bucket" } ],
+                        "buckets": [ { "Ref" : "SourceCodeBucket" } ],
                         "roleName": { "Ref": "WebServerRole" }
                     }
                 }
@@ -198,11 +234,14 @@
                     " 2>&1`\n",
                     "ret=$?\n",
                     "[ $ret -eq 0 ] || error_exit \"cfn-init failed, $ret, $result\"\n",
-                    "result=`/tmp/", { "Ref" : "SourceCodeDir" }, "/setup.sh",
+                    "result=`/opt/", { "Ref" : "SourceCodeDir" }, "/setup.sh",
 					" ", { "Ref" : "SourceCodeDir" },
                     " ", { "Ref" : "DynamoDb" },
+                    " ", { "Fn::GetAtt" : [ "ImageCloudFront", "DomainName" ] },
+                    " ", { "Ref" : "ImageBucket" },
                     " ", { "Ref" : "AWS::Region" },
                     " ", { "Ref" : "GoogleMapApiId" },
+                    " ", { "Ref" : "LogDirectory" },
                     " 2>&1`\n",
                     "[ \"$result\" == \"\" ] || error_exit \"setup.sh failed, $result\"\n",
                     "# All is well so signal success\n",
@@ -230,10 +269,6 @@
         "WebServerId" : {
             "Value" : { "Ref" : "WebServer" },
             "Description" : "The WebServerId used for creating ami"
-        },
-        "DomainName" : {
-            "Value" : { "Fn::GetAtt" : [ "ImageBucket", "DomainName" ] },
-            "Description" : "test domain name"
         }
     }
 }
