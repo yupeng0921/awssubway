@@ -73,19 +73,20 @@ fi
 
 result=`aws cloudformation describe-stacks --stack-name $stage1_name --region $region | egrep OutputValue`
 instance_id=""
+image_bucket=""
 for item in $result; do
 	[ $item == "\"OutputValue\":" ] && continue
 	item=`echo $item | awk '{print substr($0,2,length($0)-2)}'`
 	echo $item | egrep -q '^i-[0-9,a-f]{8}$'
 	[ $? -eq 0 ] && instance_id=$item
+	echo $item | egrep -q 'stage1'
+	[ $? -eq 0 ] && image_bucket=$item
 done
 
 [ "$instance_id" == "" ] && error_exit "no instance_id $result" "$resource"
+[ "$image_bucket" == "" ] && error_exit "no image_bucket $result" "$resource"
 
 echo $instance_id
-
-echo "$resource"
-exit 0
 
 aws ec2 create-image --instance-id $instance_id --name $image_name --description "$image_description" --region $region
 [ $? -eq 0 ] || error_exit "create image failed, $instance_id, $snapshot_name" "$resource"
@@ -107,7 +108,9 @@ while true; do
 	fi
 done
 
-aws cloudformation create-stack --stack-name $stage2_name --template-body file://stage2.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="ImageId",ParameterValue="$image_id" ParameterKey="InstanceType",ParameterValue="$instance_type" ParameterKey="DynamoDb",ParameterValue="$dynamodb_name" ParameterKey="MinSize",ParameterValue="$min_size" ParameterKey="MaxSize",ParameterValue="$max_size" --region $region
+echo $resource
+
+aws cloudformation create-stack --stack-name $stage2_name --template-body file://stage2.json --parameters ParameterKey="KeyName",ParameterValue="$key_name" ParameterKey="ImageId",ParameterValue="$image_id" ParameterKey="InstanceType",ParameterValue="$instance_type" ParameterKey="ImageBucket",ParameterValue="$image_bucket" ParameterKey="DynamoDb",ParameterValue="$dynamodb_name" ParameterKey="MinSize",ParameterValue="$min_size" ParameterKey="MaxSize",ParameterValue="$max_size" --region $region
 
 [ $? -eq 0 ] || error_exit "create stack failed, $stage2_name" "$resource"
 

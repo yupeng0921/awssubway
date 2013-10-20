@@ -17,6 +17,10 @@
             "Default" : "t1.micro",
             "Description" : "instance type for auto scaling configuration"
         },
+        "ImageBucket" : {
+            "Type" : "String",
+            "Description" : "bucket to store image"
+        },
         "DynamoDb" : {
             "Type" : "String",
             "Description" : "name of the dynamodb, need it to create arn for role"
@@ -125,12 +129,40 @@
                         "Statement" : [
                             {
                                 "Effect" : "Allow",
-                                "Action" : [ "dynamodb:PutItem", "dynamodb:query"],
+                                "Action" : "S3:*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:s3:::",
+                                    { "Ref" : "ImageBucket" },
+                                    "/*"
+                                ] ] }
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "S3:*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:s3:::",
+                                    { "Ref" : "ImageBucket" }
+                                ] ] }
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "dynamodb:*",
                                 "Resource" : { "Fn::Join" : [ "", [
                                     "arn:aws:dynamodb:",
                                     { "Ref" : "AWS::Region" },
                                     ":*:table/",
                                     { "Ref" : "DynamoDb" }
+                                ] ] }
+                            },
+                            {
+                                "Effect" : "Allow",
+                                "Action" : "dynamodb:*",
+                                "Resource" : { "Fn::Join" : [ "", [
+                                    "arn:aws:dynamodb:",
+                                    { "Ref" : "AWS::Region" },
+                                    ":*:table/",
+                                    { "Ref" : "DynamoDb" },
+                                    "/*"
                                 ] ] }
                             }
                         ]

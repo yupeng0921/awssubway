@@ -269,6 +269,10 @@
         "WebServerId" : {
             "Value" : { "Ref" : "WebServer" },
             "Description" : "The WebServerId used for creating ami"
+        },
+        "ImageBucketName" : {
+            "Value" : { "Ref" : "ImageBucket" },
+            "Description" : "bucket to store image"
         }
     }
 }
