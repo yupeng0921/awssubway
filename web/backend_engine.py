@@ -110,24 +110,29 @@ class Backend():
             return True
         return False
 
-    def get_page(self, station, page_num, page_size):
-        items = self.table.query(station__eq=station, index=u'timestamp-index', reverse=False)
-        i = 0
-        skip = page_num * page_size
+    def get_page(self, station, direction, timestamp, page_size):
+        need_reverse = False
+        if timestamp == u'0':
+            items = self.table.query(station__eq=station, index=u'timestamp-index', reverse=False, limit=page_size)
+        elif direction == u'next':
+            items = self.table.query(station__eq=station, timestamp__lt=timestamp,
+                                     index=u'timestamp-index', reverse=False, limit=page_size)
+        elif direction == u'prev':
+            items = self.table.query(station__eq=station, timestamp__gt=timestamp,
+                                     index=u'timestamp-index', reverse=True, limit=page_size)
+            need_reverse = True
+        else:
+            return []
         ret = []
         for item in items:
-            if i < skip:
-                pass
-            elif i < skip + page_size:
-                r = {}
-                r[u'title'] = unicode(item[u'title'])
-                r[u'timestamp'] = unicode(item[u'timestamp'])
-                r[u'description'] = unicode(item[u'description'])
-                r[u'files'] = unicode(item[u'files']).split(u' ')
-                ret.append(r)
-            else:
-                break
-            i += 1
+            r = {}
+            r[u'title'] = unicode(item[u'title'])
+            r[u'timestamp'] = unicode(item[u'timestamp'])
+            r[u'description'] = unicode(item[u'description'])
+            r[u'files'] = unicode(item[u'files']).split(u' ')
+            ret.append(r)
+        if need_reverse:
+            ret.reverse()
         return ret
 
     def get_item(self, station, title):

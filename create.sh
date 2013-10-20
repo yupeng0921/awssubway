@@ -24,6 +24,8 @@ function wait_stack()
 	done
 }
 
+only_stage1="$1"
+
 resource="targz"
 
 tar zcf $src.tar.gz $src
@@ -70,6 +72,10 @@ if [ $? -ne 0 ]; then
 	error_exit "create stack failed, $stack_name" "$resource"
 fi
 
+if [ "$only_stage1" != "" ]; then
+	echo $resource
+	exit 0
+fi
 
 result=`aws cloudformation describe-stacks --stack-name $stage1_name --region $region | egrep OutputValue`
 instance_id=""

@@ -74,8 +74,8 @@
 	{% endfor %}
 
 	<ul class="pager">
-	  <li><a href="/{{station}}?num={{prev}}" id="prev">Prev</a></li>
-	  <li><a href="/{{station}}?num={{next}}" id="next">Next</a></li>
+	  <li><a href="/{{station}}?direction=prev&timestamp={{prev_timestamp}}" id="prev">Prev</a></li>
+	  <li><a href="/{{station}}?direction=next&timestamp={{next_timestamp}}" id="next">Next</a></li>
 	</ul>
 	
 	<!-- Bootstrap core JavaScript

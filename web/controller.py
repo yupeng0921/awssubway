@@ -4,6 +4,7 @@ import os
 import time
 import ConfigParser
 import logging
+import traceback
 from flask import Flask, request, redirect, url_for, render_template, abort
 from werkzeug import secure_filename
 import backend_engine
@@ -105,20 +106,23 @@ def show_station(station=None):
             except backend_engine.TitleExistError, e:
                 remove_local_files(os.path.join(app.config[u'UPLOAD_FOLDER']), files)
                 return u'title exist, try another one'
-        page_num = request.args.get(u'num')
-        if not page_num:
-            page_num = 0
+        direction = request.args.get(u'direction')
+        timestamp = request.args.get(u'timestamp')
+        if not direction:
+            direction = u'next'
+            timestamp = u'0'
+        items = backend.get_page(station, direction, timestamp, 3)
+        if not items:
+            prev_timestamp = u'0'
+            next_timestamp = u'0'
         else:
-            page_num = int(page_num)
-        items = backend.get_page(station, page_num, 3)
-        if page_num == 0:
-            prev = 0
-        else:
-            prev = page_num - 1
-        next = page_num + 1
-        return render_template(u'station.html', station=station, items=items, prev=prev, next=next)
+            prev_timestamp = items[0][u'timestamp']
+            next_timestamp = items[-1][u'timestamp']
+        return render_template(u'station.html', station=station, items=items,
+                               prev_timestamp=prev_timestamp, next_timestamp=next_timestamp)
     except Exception, e:
         app.logger.error(e)
+        print traceback.format_exc()
         abort(500)
 
 @app.route(u'/<station>/<title>', methods=[u'GET', u'POST'])
